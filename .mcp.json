@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "jobs": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "python", "-m", "jobs_helper.mcp_jobs.server"],
+      "env": {"AGENT_ROLE": "manual"}
+    }
+  }
+}

@@ -1,4 +1,4 @@
-"""The MCP server tested the way an agent uses it: a real MCP client over stdio against a real subprocess."""
+"""The `jobs` MCP server tested the way an agent uses it: a real MCP client over stdio against a real subprocess."""
 
 import asyncio
 import json
@@ -9,94 +9,59 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 ROOT = Path(__file__).resolve().parent.parent
-LONG_LETTER = ("I have 3.5 years of commercial Python and Django experience building REST APIs with Django REST Framework "
-               "and PostgreSQL. At my current job I cut the p95 latency of the orders API from 800 ms to 320 ms with Redis "
-               "caching and moved a nightly report to Celery. I would like to bring the same care to your team.")
+UAPP = "djinni:851711-junior-manual-qa-engineer"
+INPOLIUM = "djinni:853773-junior-manual-qa-engineer-mobile-web"
+LETTER = ("I am a manual QA engineer with 1.5 years of commercial experience testing iOS and Android apps and web "
+          "applications. I wrote about 300 test cases in TestRail and test the REST API with Postman before every release.")
 
 
-def _params(workdir: Path, role: str) -> StdioServerParameters:
-    return StdioServerParameters(
-        command=sys.executable, args=["-m", "jobdesk.server"],
-        env={"AGENT_ROLE": role, "JOBDESK_DATA": str(ROOT / "data"), "JOBDESK_WORKDIR": str(workdir),
-             "JOBDESK_TODAY": "2026-10-18", "PYTHONPATH": str(ROOT)})
+def _run(tmp: Path, role: str, calls: list[tuple[str, dict]], closed: str = ""):
+    params = StdioServerParameters(command=sys.executable, args=["-m", "jobs_helper.mcp_jobs.server"], cwd=str(ROOT),
+                                   env={"AGENT_ROLE": role, "JOBS_WORKSPACE": str(tmp), "JOBS_SETTINGS": str(tmp / "s.yaml"),
+                                        "JOBS_TODAY": "2026-10-18", "JOBS_CLOSED": closed, "PYTHONPATH": str(ROOT)})
 
-
-def _run(workdir: Path, role: str, calls: list[tuple[str, dict]]):
-    """Opens one session, performs the calls in order, returns (tool names, parsed results)."""
     async def go():
-        async with stdio_client(_params(workdir, role)) as (r, w):
-            async with ClientSession(r, w) as session:
-                await session.initialize()
-                tools = [t.name for t in (await session.list_tools()).tools]
-                out = []
-                for name, args in calls:
-                    res = await session.call_tool(name, args)
-                    out.append(json.loads(res.content[0].text))
-                return tools, out
+        async with stdio_client(params) as (r, w), ClientSession(r, w) as s:
+            await s.initialize()
+            tools = sorted(t.name for t in (await s.list_tools()).tools)
+            return tools, [json.loads((await s.call_tool(n, a)).content[0].text) for n, a in calls]
     return asyncio.run(go())
 
 
-def test_server_lists_exactly_three_tools(tmp_path):
-    tools, _ = _run(tmp_path, "scout", [])
-    assert sorted(tools) == ["apply", "get_job", "search_jobs"]
+def test_exactly_three_tools(tmp_path):
+    assert _run(tmp_path, "scout", [])[0] == ["apply", "get_job", "search_jobs"]
 
 
-def test_search_and_get_job_work_for_scout(tmp_path):
-    _, (found, job, closed) = _run(tmp_path, "scout", [
-        ("search_jobs", {"keywords": "python django", "remote": True, "limit": 5}),
-        ("get_job", {"job_id": "J-101"}),
-        ("get_job", {"job_id": "J-109"}),
-    ])
-    assert found["jobs"] and all(j["remote"] for j in found["jobs"])
-    assert job["status"] == "open" and "questions" not in job   # form questions stay hidden until apply
-    assert closed["status"] == "closed"
-
-
-def test_scout_cannot_write_and_nothing_is_written(tmp_path):
-    _, (res,) = _run(tmp_path, "scout", [("apply", {"job_id": "J-103", "cover_letter": LONG_LETTER})])
-    assert res["error"] == "forbidden" and res["retryable"] is False
+def test_scout_reads_but_cannot_write(tmp_path):
+    _, (found, job, denied) = _run(tmp_path, "scout", [("search_jobs", {"keywords": "qa", "remote": True}),
+                                                       ("get_job", {"job_id": UAPP}), ("apply", {"job_id": UAPP, "cover_letter": LETTER})])
+    assert found["count"] > 0 and job["is_open"] and denied["error"] == "forbidden"
     assert not (tmp_path / "applications.csv").exists()
 
 
-def test_reviewer_applies_and_row_is_written(tmp_path):
-    _, (res,) = _run(tmp_path, "reviewer", [("apply", {"job_id": "J-103", "cover_letter": LONG_LETTER})])
-    assert res["status"] == "submitted" and res["application_id"] == "APP-0001"
-    rows = (tmp_path / "applications.csv").read_text(encoding="utf-8").splitlines()
-    assert len(rows) == 2 and "J-103" in rows[1] and "reviewer" in rows[1]
+def test_reviewer_writes_a_row(tmp_path):
+    _, (res,) = _run(tmp_path, "reviewer", [("apply", {"job_id": UAPP, "cover_letter": LETTER})])
+    assert res["status"] == "submitted"
+    lines = (tmp_path / "applications.csv").read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 2 and UAPP in lines[1] and "reviewer" in lines[1]
 
 
 def test_errors_are_structured_and_the_server_survives(tmp_path):
-    _, results = _run(tmp_path, "reviewer", [
-        ("apply", {"job_id": "J-109", "cover_letter": LONG_LETTER}),   # closed
-        ("apply", {"job_id": "J-999", "cover_letter": LONG_LETTER}),   # unknown
-        ("apply", {"job_id": "J-103", "cover_letter": "too short"}),   # bad letter
-        ("apply", {"job_id": "J-101", "cover_letter": LONG_LETTER}),   # form has questions
-        ("search_jobs", {"keywords": "   "}),                          # bad input
-        ("get_job", {"job_id": "J-103"}),                              # the server is still alive afterwards
-    ])
-    closed, unknown, short, needs, bad, alive = results
-    assert closed["error"] == "job_closed" and closed["similar_open_jobs"] and closed["retryable"] is False
-    assert unknown["error"] == "unknown_job"
-    assert short["error"] == "cover_letter_too_short" and short["retryable"] is True
-    assert needs["error"] == "needs_input" and {q["id"] for q in needs["questions"]} == {"why_looking", "achievement"}
-    assert bad["error"] == "invalid_input"
-    assert alive["id"] == "J-103"
-    for e in (closed, unknown, short, needs, bad):
-        assert e["message"] and e["hint"], "every error must say what happened and what to do next"
+    _, res = _run(tmp_path, "reviewer", [
+        ("apply", {"job_id": INPOLIUM, "cover_letter": LETTER}),
+        ("apply", {"job_id": "https://jobs.dou.ua/companies/a/vacancies/1/", "cover_letter": LETTER}),
+        ("apply", {"job_id": UAPP, "cover_letter": "short"}),
+        ("search_jobs", {"keywords": " "}),
+        ("get_job", {"job_id": UAPP}),
+    ], closed=INPOLIUM)
+    closed, other, short, bad, alive = res
+    assert (closed["error"], other["error"], short["error"], bad["error"]) == ("job_closed", "unsupported_source",
+                                                                               "cover_letter_too_short", "invalid_argument")
+    assert all(e["message"] and e["hint"] and "retryable" in e for e in (closed, other, short, bad))
+    assert alive["id"] == UAPP
 
 
-def test_duplicate_is_refused(tmp_path):
-    _, (first, second) = _run(tmp_path, "reviewer", [
-        ("apply", {"job_id": "J-103", "cover_letter": LONG_LETTER}),
-        ("apply", {"job_id": "j103", "cover_letter": LONG_LETTER}),    # the id is normalised
-    ])
-    assert first["status"] == "submitted"
-    assert second["error"] == "already_applied" and second["application_id"] == first["application_id"]
-    assert len((tmp_path / "applications.csv").read_text(encoding="utf-8").splitlines()) == 2
-
-
-def test_audit_log_records_role_and_outcome(tmp_path):
-    _run(tmp_path, "scout", [("apply", {"job_id": "J-103", "cover_letter": LONG_LETTER}), ("get_job", {"job_id": "J-103"})])
+def test_audit_log_records_roles(tmp_path):
+    _run(tmp_path, "scout", [("apply", {"job_id": UAPP, "cover_letter": LETTER}), ("get_job", {"job_id": UAPP})])
     log = [json.loads(x) for x in (tmp_path / "mcp_calls.jsonl").read_text(encoding="utf-8").splitlines()]
-    assert [(e["role"], e["tool"], e["ok"], e["error"]) for e in log] == [
-        ("scout", "apply", False, "forbidden"), ("scout", "get_job", True, None)]
+    assert [(e["role"], e["tool"], e["error"]) for e in log] == [("scout", "apply", "forbidden"), ("scout", "get_job", None)]

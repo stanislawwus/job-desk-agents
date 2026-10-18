@@ -1,0 +1,9 @@
+# Fictional candidate used by the demo and the evaluation. Not a real person.
+# The Djinni form needs a name, an email and a LinkedIn profile or a CV (cv.md next to this file is attached as is).
+personal: {first_name: Iryna, last_name: Bondar, email: iryna.bondar@example.com, city: Lviv, country: Ukraine}
+links: {linkedin: "https://linkedin.com/in/iryna-bondar-example"}
+job_preferences: {desired_salary_usd: 700, notice_period: "can start within a week", work_mode: [remote], employment: [full-time, part-time], relocation: false}
+languages: {english: B1, ukrainian: native}
+experience_years: 1.5
+answers:
+  why_looking: "I want to work on a product with a bigger QA team, where I can learn from senior testers and take ownership of whole features, from requirements review to release."
