@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# one directory per run: trace.jsonl, result.json, workspace/ (applications.csv, mcp_calls.jsonl)
+runs/
+workspace/
+.env
