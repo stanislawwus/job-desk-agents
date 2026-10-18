@@ -47,6 +47,7 @@ def test_ground_truth_ids_exist_in_the_snapshot():
     ("I have 3 years of experience in mobile QA.", True, None),
     ("I have 1.5 years of experience in manual testing.", False, None),
     ("The role requires 3+ years, and I have 1.5.", False, UNITED),
+    ("I'm aware the vacancy asks for 3+ years, and I have less.", False, UNITED),   # c3 single r2: was a false positive
     ("I automate tests with Appium.", True, None),
     ("I have hands-on experience with Selenium.", True, None),
     ("I have not worked with Appium yet, but I am keen to learn test automation.", False, None),

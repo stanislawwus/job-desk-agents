@@ -58,7 +58,7 @@ AGENT_ROLE=single_agent npx @modelcontextprotocol/inspector uv run python -m job
 Показати трейс як сторінку:
 
 ```bash
-uv run python scripts/trace_view.py runs/<run>/trace.jsonl --html trace.html
+uv run python scripts/trace_view.py runs/<run>/trace.jsonl   # пише trace.html поруч
 ```
 
 ## Питання, до яких варто бути готовим

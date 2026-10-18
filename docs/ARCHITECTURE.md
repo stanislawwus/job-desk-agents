@@ -77,8 +77,8 @@
 Події `tool_call` і `tool_result` пишуть хуки SDK, тому вони збігаються з тим, що справді пройшло через MCP. Окремо сервер веде аудит `workspace/mcp_calls.jsonl`: роль, інструмент, результат. Оцінка читає саме його, а не слова агента.
 
 ```
-uv run python scripts/trace_view.py runs/<run>/trace.jsonl              # у терміналі
-uv run python scripts/trace_view.py runs/<run>/trace.jsonl --html t.html  # HTML-сторінка
+uv run python scripts/trace_view.py runs/<run>/trace.jsonl   # пише trace.html (таймлайн) поруч із трейсом
+uv run python -m jobs_helper.agents.run ...                  # живий кольоровий лог у консолі під час запуску
 ```
 
 ## Приклад проходу (c5: «Відгукнись на 2 найкращі remote manual QA вакансії на Djinni», на UAPP.AI уже є відгук)

@@ -43,7 +43,7 @@ NOT_IN_CV = ["appium", "selenium", "cypress", "playwright", "webdriverio", "jmet
              "fiddler", "jenkins", "confluence", "svn", "websocket", "automation", "automate", "automated", "автоматиз",
              "accounting", "бухгалтер", "slot", "igaming", "oscilloscope", "осцилограф", "electronics", "електронік"]
 FIRST_PERSON = re.compile(r"\b(I|I'm|I've|my|me)\b|(?<!\w)(я|мій|моя|моє|мої|мене|мені|маю|працюю|тестую|володію)(?!\w)", re.I)
-REQUIREMENT = re.compile(r"\b(require[sd]?|requirements?|looking for|you ask|you seek|expect|minimum|needs?)\b|"
+REQUIREMENT = re.compile(r"\b(require[sd]?|requirements?|looking for|asks? for|asking for|you ask|you seek|expects?|minimum|needs?)\b|"
                          r"(вимага|потрібн|шукаєте|у вакансії|вимог)", re.I)
 EXPERIENCE_CUE = re.compile(r"\b(experience|worked|work with|working|built|use[ds]?|using|automate|automated|wrote|write|"
                             r"proficien\w*|expert\w*|hands-on|skilled|knowledge|familiar|years?|daily|every day)\b|"

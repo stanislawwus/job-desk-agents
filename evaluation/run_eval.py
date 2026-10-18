@@ -108,7 +108,10 @@ async def main() -> None:
     p.add_argument("--concurrency", type=int, default=5)
     p.add_argument("--model", help="default: `model` from cases.yaml")
     p.add_argument("--verbose", action="store_true", help="live log of every run (noisy with concurrency)")
+    p.add_argument("--regrade", metavar="RESULTS_DIR", help="re-grade finished runs of evaluation/results/<stamp> (after a grader fix); no agent is run")
     args = p.parse_args()
+    if args.regrade:
+        return regrade(Path(args.regrade))
 
     spec = yaml.safe_load((HERE / "cases.yaml").read_text(encoding="utf-8"))
     snapshot = (config.ROOT / spec["snapshot"]).resolve()
@@ -128,6 +131,32 @@ async def main() -> None:
     (res_dir / "results.json").write_text(text, encoding="utf-8")
     (res_dir / "report.md").write_text(render_report(results, cases, modes, spec, stamp), encoding="utf-8")
     print(f"\nReport: {res_dir / 'report.md'}")
+
+
+def regrade(res_dir: Path) -> None:
+    """Grades the recorded runs again with the current graders; the agents are not called. Keeps the old report."""
+    spec = yaml.safe_load((HERE / "cases.yaml").read_text(encoding="utf-8"))
+    jobs = {j["id"]: Job(**j) for j in json.loads((config.ROOT / spec["snapshot"]).read_text(encoding="utf-8"))["jobs"]}
+    cases = {c["id"]: c for c in spec["cases"]}
+    results = json.loads((res_dir / "results.json").read_text(encoding="utf-8"))
+    stamp = res_dir.name
+    for r in results:
+        run_dir = config.ROOT / "runs" / f"eval_{stamp}" / f"{r['case']}__{r['mode']}__r{r['rep']}"
+        ws, cand = run_dir / "workspace", config.ROOT / "data" / "candidates" / cases[r["case"]]["candidate"]
+        seeded = {x["application_id"] for x in Tracker(ws).rows() if x["submitted_by"] == "seed"}
+        res = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
+        g = GRADERS[cases[r["case"]]["grader"]](RunOutcome(ws, res, jobs, seeded, cand), cases[r["case"]].get("params", {}))
+        if g.passed != r["passed"]:
+            print(f"  changed: {r['case']} {r['mode']} r{r['rep']}: {r['reason'][:90]} -> {g.reason[:90]}")
+        r.update(passed=g.passed, reason=g.reason, details=g.details)
+    old = res_dir / "report.md"
+    if old.exists() and not (res_dir / "report_before_regrade.md").exists():
+        old.rename(res_dir / "report_before_regrade.md")
+    (res_dir / "results.json").write_text(json.dumps(results, ensure_ascii=False, indent=1), encoding="utf-8")
+    modes = [m for m in ("multi", "single") if any(r["mode"] == m for r in results)]
+    (res_dir / "report.md").write_text(render_report(results, [c for c in spec["cases"] if any(r["case"] == c["id"] for r in results)],
+                                                     modes, spec, stamp), encoding="utf-8")
+    print(f"Re-graded: {res_dir / 'report.md'}")
 
 
 def render_report(results: list[dict], cases: list[dict], modes: list[str], spec: dict, stamp: str) -> str:
@@ -175,4 +204,6 @@ def render_report(results: list[dict], cases: list[dict], modes: list[str], spec
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    r = main()
+    if asyncio.iscoroutine(r):
+        asyncio.run(r)
