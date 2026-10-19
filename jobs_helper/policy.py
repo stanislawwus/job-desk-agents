@@ -1,7 +1,7 @@
 """Submit policy for Djinni chosen by the human (settings.yaml) and the candidate profile (candidate.yaml).
 
 The agent never chooses how an application is sent: the MCP server reads these files itself.
-Trimmed from jobs_helper_MCP: only Djinni, no CV design settings, no chat notes, no Claude Desktop extension fields.
+Only Djinni.
 """
 
 from __future__ import annotations
@@ -18,8 +18,6 @@ Policy = Literal["manual", "confirm", "auto"]
 POLICIES: tuple[Policy, ...] = ("manual", "confirm", "auto")
 SITES = ("djinni",)
 DEFAULTS: dict[str, Policy] = {"djinni": "confirm"}
-SITE_NOTES = {"djinni": "Окремої заборони автоматизації для кандидатів не знайдено (01_recon/RECON.md в jobs_helper_MCP)."}
-
 
 def settings_path() -> Path:
     return Path(os.environ.get("JOBS_SETTINGS", config.HOME / "settings.yaml"))
@@ -44,15 +42,6 @@ def load_policies() -> dict[str, Policy]:
         value = raw.get(site) if raw.get(site) in POLICIES else os.environ.get(f"JOBS_POLICY_{site.upper()}", "").strip().lower()
         out[site] = value if value in POLICIES else DEFAULTS[site]
     return out
-
-
-def set_policy(site: str, policy: Policy) -> None:
-    if site not in SITES or policy not in POLICIES:
-        raise ValueError(f"site must be one of {SITES}, policy one of {POLICIES}")
-    path = settings_path()
-    data = _load_yaml(path)
-    data.setdefault("submit_policy", {})[site] = policy
-    path.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
 
 
 def dry_run() -> bool:

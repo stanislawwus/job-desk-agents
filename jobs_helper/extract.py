@@ -26,23 +26,6 @@ def html_to_text(raw: str | None) -> str:
 _SALARY_RE = re.compile(r"(від|до|from|up to)?\s*\$\s?(\d[\d\s]*)(?:\s*[–—-]\s*\$?\s?(\d[\d\s]*))?", re.I)
 
 
-def parse_salary(text: str | None) -> tuple[int | None, int | None]:
-    """'$2200–2800' -> (2200, 2800); 'від $3000' -> (3000, None); 'до $4000' -> (None, 4000)."""
-    if not text:
-        return None, None
-    m = _SALARY_RE.search(text)
-    if not m:
-        return None, None
-    prefix = (m.group(1) or "").lower()
-    lo = int(re.sub(r"\D", "", m.group(2)))
-    hi = int(re.sub(r"\D", "", m.group(3))) if m.group(3) else None
-    if prefix in ("до", "up to"):
-        return None, lo
-    if prefix in ("від", "from"):
-        return lo, hi
-    return lo, hi if hi is not None else lo
-
-
 # ---------------------------------------------------------------- seniority
 
 _SENIORITY_PATTERNS: list[tuple[Seniority, str]] = [
@@ -61,16 +44,6 @@ def guess_seniority(title: str, extra: str = "") -> Seniority:
         if found:
             order = ["intern", "junior", "middle", "senior", "lead"]
             return min(found, key=order.index)
-    return "unknown"
-
-
-def seniority_from_text(word: str | None) -> Seniority:
-    if not word:
-        return "unknown"
-    w = word.strip().lower()
-    for lvl in ("intern", "junior", "middle", "senior", "lead"):
-        if lvl in w:
-            return lvl  # type: ignore[return-value]
     return "unknown"
 
 
@@ -160,14 +133,6 @@ def relevance(keywords: str, title: str, tags: list[str], description: str) -> f
 
 _UA_MONTHS = {"січня": 1, "лютого": 2, "березня": 3, "квітня": 4, "травня": 5, "червня": 6, "липня": 7,
               "серпня": 8, "вересня": 9, "жовтня": 10, "листопада": 11, "грудня": 12}
-
-
-def parse_ua_date(text: str | None) -> str | None:
-    """'14 жовтня 2026' -> '2026-10-14'."""
-    m = re.search(r"(\d{1,2})\s+([а-яіїєґ]+)\s+(\d{4})", (text or "").lower())
-    if not m or m.group(2) not in _UA_MONTHS:
-        return None
-    return f"{int(m.group(3)):04d}-{_UA_MONTHS[m.group(2)]:02d}-{int(m.group(1)):02d}"
 
 
 def feed_date(entry) -> str | None:

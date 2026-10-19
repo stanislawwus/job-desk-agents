@@ -58,19 +58,3 @@ def fetch_text(url: str, ttl: int = config.PAGE_TTL_S, use_cache: bool = True) -
     return fetch(url, ttl, use_cache).decode("utf-8", errors="replace")
 
 
-def resolve_redirects(url: str, max_hops: int = 6) -> str:
-    """Follow redirects hop by hop (HEAD, falling back to GET) and return the final URL."""
-    current = url
-    for _ in range(max_hops):
-        _throttle(urlparse(current).netloc)
-        try:
-            r = _client.head(current, follow_redirects=False)
-            if r.status_code in (403, 405):
-                r = _client.get(current, follow_redirects=False)
-        except httpx.HTTPError:
-            break
-        loc = r.headers.get("location")
-        if r.status_code not in (301, 302, 303, 307, 308) or not loc:
-            break
-        current = str(httpx.URL(current).join(loc))
-    return current

@@ -2,7 +2,8 @@
 
 Trimmed from jobs_helper_MCP for the mini-project, so the agents get small inputs and small outputs:
 - one source (Djinni), no DOU / Happy Monday / LinkedIn / ATS / browser;
-- `apply` takes only the message to the recruiter: the candidate's own CV is attached as is, agents never rewrite it;
+- `apply` takes the message to the recruiter and, optionally, the CV tailored to the vacancy; a tailored CV may only
+  reorder and rephrase the candidate's own facts, so new numbers or tools are refused (unverified_facts);
 - `get_job` returns the vacancy itself, without fit scores, red flags or activity logs.
 
 Every failure is returned (never raised) as:
@@ -11,6 +12,7 @@ Every failure is returned (never raised) as:
 
 from __future__ import annotations
 
+import json
 import os
 from datetime import date
 from pathlib import Path
@@ -19,6 +21,7 @@ from jobs_helper import config
 from jobs_helper import policy as pol
 from jobs_helper.apply.backend import ApplyBackend, ApplyRequest
 from jobs_helper.apply.mock import MockBackend
+from jobs_helper.cv_check import unverified
 from jobs_helper.models import Job, SearchQuery
 from jobs_helper.snapshot import SnapshotStore
 from jobs_helper.sources import get_job as live_get_job
@@ -28,6 +31,7 @@ from jobs_helper.tracker import Tracker
 
 WRITER_ROLES = {"reviewer", "single_agent", "manual"}
 COVER_MIN, COVER_MAX = 200, 1800
+CV_MIN, CV_MAX = 400, 6000
 DESCRIPTION_MAX = 3000
 
 
@@ -123,7 +127,7 @@ class JobsService:
         return data
 
     # ------------------------------------------------------------ apply
-    def apply(self, job_id: str, cover_letter: str) -> dict:
+    def apply(self, job_id: str, cover_letter: str, cv_markdown: str | None = None) -> dict:
         if self.role not in WRITER_ROLES:
             return err("forbidden", f"Role '{self.role}' may not submit applications.",
                        "Only the reviewer agent calls apply; hand the draft over instead.")
@@ -148,6 +152,21 @@ class JobsService:
         if not profile or not name:
             return err("candidate_profile_missing", "candidate.yaml is missing or has no name.",
                        "Ask the candidate to fill candidate.yaml; never invent personal data.")
+        original = pol.current_cv_text(profile)
+        cv = (cv_markdown or "").strip()
+        if cv:
+            if not CV_MIN <= len(cv) <= CV_MAX:
+                return err("cv_invalid", f"The tailored CV has {len(cv)} chars; allowed {CV_MIN}-{CV_MAX}.",
+                           "Send the whole CV in markdown, or omit cv_markdown to attach the candidate's own CV.", True)
+            if name.split()[0].lower() not in cv.lower():
+                return err("cv_invalid", "The tailored CV does not contain the candidate's name.",
+                           "Keep the name and contact line of the original CV at the top.", True)
+            extra = unverified(cv, original + "\n" + json.dumps(profile, ensure_ascii=False))
+            if extra["numbers"] or extra["tools"]:
+                found = ", ".join(extra["tools"] + extra["numbers"])
+                return err("unverified_facts", f"The tailored CV contains facts that are not in the candidate's CV: {found}.",
+                           "Remove them and apply again. A tailored CV only reorders, shortens and rephrases the "
+                           "candidate's own facts; it never adds tools, numbers or years.", True, unverified=extra)
         prev = self.tracker.find_active(name, job.id)
         if prev:
             return err("already_applied", f"{name} already applied to {job.id} on {prev['created_at'][:10]} "
@@ -155,7 +174,7 @@ class JobsService:
                        application_id=prev["application_id"])
         cv_path = pol.cv_file(profile)
         outcome = self.backend.apply(ApplyRequest(job=job, target="djinni", profile=profile,
-                                                  cv_text=pol.current_cv_text(profile), cover_letter=cover,
+                                                  cv_text=cv or original, cover_letter=cover,
                                                   policy=pol.load_policies()["djinni"], dry_run=pol.dry_run(),
                                                   cv_path=str(cv_path) if cv_path else None))
         if outcome.status == "needs_input":
@@ -164,12 +183,13 @@ class JobsService:
                        "contact details or a CV.", False, questions=outcome.questions)
         dry = pol.dry_run()
         app_id = self.tracker.next_id()
-        cv_saved, cover_saved = self.tracker.save_documents(app_id, pol.current_cv_text(profile), cover)
+        cv_saved, cover_saved = self.tracker.save_documents(app_id, cv or original, cover)
         self.tracker.add(application_id=app_id, candidate=name, job_id=job.id, source="djinni", target="djinni",
                          company=job.company or "", title=job.title, url=job.url, status=outcome.status,
                          policy="dry_run" if dry else pol.load_policies()["djinni"], cv_path=cv_saved,
-                         cover_path=cover_saved, submitted_by=self.role)
+                         cover_path=cover_saved, cv="tailored" if cv else "original", submitted_by=self.role)
         return {"ok": True, "application_id": app_id, "status": outcome.status, "job_id": job.id, "url": job.url,
+                "cv": "tailored" if cv else "original",
                 "policy": "dry_run" if dry else pol.load_policies()["djinni"], "message": outcome.message}
 
     # ------------------------------------------------------------ helpers

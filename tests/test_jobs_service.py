@@ -54,6 +54,28 @@ def test_apply_writes_one_row_and_documents(env):
     assert "Iryna Bondar" in (ws / rows[0]["cv_path"]).read_text(encoding="utf-8")   # the candidate's own CV, unchanged
 
 
+def test_apply_with_tailored_cv(env):
+    from jobs_helper import config
+    original = (config.DEFAULT_CANDIDATE / "cv.md").read_text(encoding="utf-8")
+    tailored = original.replace("## Skills", "## Skills for mobile QA")
+    res = svc().apply(UAPP, LETTER, tailored)
+    assert res["ok"] and res["cv"] == "tailored"
+    row = Tracker().rows()[0]
+    assert row["cv"] == "tailored" and "Skills for mobile QA" in (env / "ws" / row["cv_path"]).read_text(encoding="utf-8")
+
+
+def test_tailored_cv_cannot_add_facts(env):
+    from jobs_helper import config
+    original = (config.DEFAULT_CANDIDATE / "cv.md").read_text(encoding="utf-8")
+    lie = original.replace("1.5 years of commercial experience", "3 years of commercial experience").replace("Scrum.", "Scrum, Appium.")
+    res = svc().apply(UAPP, LETTER, lie)
+    assert res["error"] == "unverified_facts" and res["retryable"]
+    assert res["unverified"] == {"numbers": ["3"], "tools": ["appium"]}
+    assert svc().apply(UAPP, LETTER, "short CV")["error"] == "cv_invalid"
+    assert svc().apply(UAPP, LETTER, original.replace("Iryna", "Anna").replace("iryna", "anna"))["error"] == "cv_invalid"
+    assert Tracker().rows() == []                                     # nothing was written
+
+
 def test_scout_cannot_apply(env):
     assert svc("scout").apply(UAPP, LETTER)["error"] == "forbidden"
     assert Tracker().rows() == []

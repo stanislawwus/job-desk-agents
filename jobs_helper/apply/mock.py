@@ -2,7 +2,7 @@
 It is the only backend of this mini-project: `apply` fills the form, acts on the submit policy and the tracker row is the
 state change. Results never depend on page markup and no real application is sent.
 
-Djinni form (01_recon/RECON.md): message to the recruiter, email (required), name, and a LinkedIn profile or a CV.
+Djinni form (from the site recon in jobs_helper_MCP): message to the recruiter, email (required), name, and a LinkedIn profile or a CV.
 
 Env:
   JOBS_MOCK_CONFIRM   answer of the simulated human for the 'confirm' policy: yes | no (default yes)

@@ -2,9 +2,8 @@
 
 Two locations:
 - ROOT: the source tree (snapshots, evaluation, runs) — only meaningful in a git checkout;
-- HOME: the candidate's own data (candidate.yaml, settings.yaml, browser sessions, tokens, tracker).
-  In a git checkout HOME = ROOT (development); when installed (uvx, Claude Desktop extension)
-  HOME = ~/.jobs_helper. JOBS_HOME overrides both.
+- HOME: the candidate's own data (settings.yaml, tracker). In a git checkout HOME = ROOT, otherwise ~/.jobs_helper;
+  JOBS_HOME overrides both.
 """
 
 from __future__ import annotations

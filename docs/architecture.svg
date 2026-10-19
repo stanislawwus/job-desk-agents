@@ -20,7 +20,7 @@
   <!-- scout -->
   <rect x="40" y="190" width="400" height="140" rx="12" fill="#ecfeff" stroke="#0e7490" stroke-width="2"/>
   <text x="60" y="220" font-size="19" font-weight="700" fill="#0e7490">Агент A · Scout</text>
-  <text x="60" y="244" font-size="14" class="s">шукає вакансії на Djinni, пише листи з фактів CV.</text>
+  <text x="60" y="244" font-size="14" class="s">шукає вакансії, пише лист і переробляє CV під кожну.</text>
   <text x="60" y="262" font-size="14" class="s">Писати не може: інструмента apply в нього немає.</text>
   <rect x="60" y="282" width="130" height="32" rx="16" class="read"/><text x="125" y="303" font-size="14" text-anchor="middle" class="m t">search_jobs</text>
   <rect x="204" y="282" width="100" height="32" rx="16" class="read"/><text x="254" y="303" font-size="14" text-anchor="middle" class="m t">get_job</text>
@@ -28,7 +28,7 @@
   <!-- reviewer -->
   <rect x="560" y="190" width="400" height="140" rx="12" fill="#faf5ff" stroke="#7e22ce" stroke-width="2"/>
   <text x="580" y="220" font-size="19" font-weight="700" fill="#7e22ce">Агент B · Reviewer</text>
-  <text x="580" y="244" font-size="14" class="s">звіряє лист із CV і запитом, прибирає вигадане.</text>
+  <text x="580" y="244" font-size="14" class="s">звіряє лист і CV з оригіналом, прибирає вигадане.</text>
   <text x="580" y="262" font-size="14" class="s">Єдиний, хто має право писати.</text>
   <rect x="580" y="282" width="100" height="32" rx="16" class="read"/><text x="630" y="303" font-size="14" text-anchor="middle" class="m t">get_job</text>
   <rect x="694" y="282" width="150" height="32" rx="16" class="write"/><text x="769" y="303" font-size="14" font-weight="700" text-anchor="middle" class="m t">apply  ✎ WRITE</text>
@@ -38,7 +38,7 @@
   <line x1="620" y1="130" x2="760" y2="188" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
   <text x="716" y="156" font-size="12" class="s">запит + CV + чернетки</text>
   <line x1="440" y1="236" x2="558" y2="236" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
-  <text x="499" y="228" font-size="12" text-anchor="middle" class="s">чернетки JSON</text>
+  <text x="499" y="228" font-size="12" text-anchor="middle" class="s">лист + CV (JSON)</text>
   <line x1="558" y1="292" x2="442" y2="292" stroke="#475569" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arr)"/>
   <text x="499" y="312" font-size="12" text-anchor="middle" class="s">feedback (≤ 1 раз)</text>
 
@@ -62,10 +62,10 @@
   <text x="371" y="572" font-size="13" class="s">is_open: true | false</text>
   <rect x="650" y="504" width="290" height="86" rx="10" class="write"/>
   <text x="666" y="530" font-size="16" font-weight="700" class="m t">apply</text>
-  <text x="666" y="552" font-size="13" class="s">WRITE · форма Djinni → трекер</text>
-  <text x="666" y="572" font-size="13" class="s">scout → forbidden, нічого не пишеться</text>
+  <text x="666" y="552" font-size="13" class="s">WRITE · лист + CV → форма → трекер</text>
+  <text x="666" y="572" font-size="13" class="s">нові факти в CV → unverified_facts</text>
   <text x="60" y="624" font-size="13" class="s">Помилка = {error, message, hint, retryable}, сервер не падає:</text>
-  <text x="60" y="640" font-size="13" class="s m">forbidden · unsupported_source · job_not_found · job_closed · already_applied · cover_letter_too_short · …</text>
+  <text x="60" y="640" font-size="13" class="s m">forbidden · unsupported_source · job_closed · already_applied · unverified_facts · cv_invalid · …</text>
 
   <!-- data stores -->
   <line x1="195" y1="646" x2="195" y2="664" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>

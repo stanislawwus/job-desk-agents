@@ -11,7 +11,7 @@ from jobs_helper import config
 from jobs_helper.models import now_iso
 
 FIELDS = ["application_id", "created_at", "candidate", "job_id", "source", "target", "company", "title", "url",
-          "status", "policy", "cv_path", "cover_path", "submitted_by"]
+          "status", "policy", "cv", "cv_path", "cover_path", "submitted_by"]
 # statuses that mean "the employer has (or will get) this application"
 ACTIVE = {"submitted", "awaiting_user"}
 

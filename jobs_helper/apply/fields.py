@@ -1,6 +1,6 @@
 """Maps form field labels (UA / EN, as seen on DOU, Djinni and ATS forms) to candidate profile keys.
 
-The same matcher is used by the mock backend and, later, by the browser backend."""
+Used by the mock Djinni form."""
 
 from __future__ import annotations
 

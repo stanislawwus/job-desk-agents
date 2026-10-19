@@ -58,9 +58,10 @@ def metrics(run_dir: Path) -> dict:
 
 
 def reviewer_edits(o: RunOutcome) -> list[dict]:
-    """Changes the Reviewer made to the Scout's message before submitting (multi mode only)."""
-    drafts = {d["job_id"]: d["cover_letter"] for rnd in o.result.get("rounds", []) for d in
-              ((rnd.get("scout") or {}).get("structured") or {}).get("drafts", [])}
+    """Changes the Reviewer made to the Scout's message and CV before submitting (multi mode only)."""
+    all_drafts = [d for rnd in o.result.get("rounds", []) for d in ((rnd.get("scout") or {}).get("structured") or {}).get("drafts", [])]
+    drafts = {d["job_id"]: d["cover_letter"] for d in all_drafts}
+    cvs = {d["job_id"]: d.get("cv_markdown", "") for d in all_drafts}
     out = []
     for r in o.successful:
         if r["job_id"] not in drafts:
@@ -68,7 +69,10 @@ def reviewer_edits(o: RunOutcome) -> list[dict]:
         a, b = drafts[r["job_id"]].split(), o.doc(r).split()
         ops = [{"op": t, "scout": " ".join(a[i1:i2]), "reviewer": " ".join(b[j1:j2])}
                for t, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b).get_opcodes() if t != "equal"]
-        out.append({"job_id": r["job_id"], "changes": ops})
+        a, b = cvs[r["job_id"]].split(), o.doc(r, "cv").split()
+        cv_ops = [{"op": t, "scout": " ".join(a[i1:i2]), "reviewer": " ".join(b[j1:j2])}
+                  for t, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b).get_opcodes() if t != "equal"]
+        out.append({"job_id": r["job_id"], "changes": ops, "cv_changes": cv_ops})
     return out
 
 
@@ -190,12 +194,15 @@ def render_report(results: list[dict], cases: list[dict], modes: list[str], spec
     if "multi" in modes:
         multi = [r for r in results if r["mode"] == "multi"]
         changed = [e for r in multi for e in r["reviewer_edits"] if e["changes"]]
+        cv_changed = [e for r in multi for e in r["reviewer_edits"] if e.get("cv_changes")]
+        total = sum(r["submitted"] for r in multi)
         lines += ["", "## Чи змінював щось Reviewer", "",
-                  f"Reviewer змінив лист Scout перед відправкою в **{len(changed)} з {sum(r['submitted'] for r in multi)}** поданих відгуків."]
+                  f"Reviewer змінив лист Scout у **{len(changed)} з {total}** поданих відгуків, а CV у **{len(cv_changed)} з {total}**."]
         for r in multi:
             for e in r["reviewer_edits"]:
-                for ch in e["changes"]:
-                    lines.append(f"- {r['case']} r{r['rep']} `{e['job_id']}`: «{ch['scout'][:140]}» → «{ch['reviewer'][:140]}»")
+                for kind, key in (("лист", "changes"), ("CV", "cv_changes")):
+                    for ch in e.get(key, []):
+                        lines.append(f"- {r['case']} r{r['rep']} `{e['job_id']}` ({kind}): «{ch['scout'][:140]}» → «{ch['reviewer'][:140]}»")
     lines += ["", "## Деталі", ""]
     for r in results:
         lines.append(f"- **{r['case']} / {r['mode']} / r{r['rep']}**: {'PASS' if r['passed'] else 'FAIL'}: {r['reason']} "

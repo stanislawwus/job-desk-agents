@@ -13,7 +13,7 @@ class ApplyRequest:
     job: Job
     target: str                 # always 'djinni' in this mini-project
     profile: dict               # candidate.yaml
-    cv_text: str                # the candidate's own CV (attached as is, never rewritten by an agent)
+    cv_text: str                # the CV attached to the form: tailored to the vacancy or the candidate's own
     cover_letter: str
     policy: str                 # manual | confirm | auto
     dry_run: bool
@@ -22,14 +22,10 @@ class ApplyRequest:
 
 @dataclass
 class ApplyOutcome:
-    status: str                 # prepared | awaiting_user | submitted | declined | needs_input | failed
+    status: str                 # prepared | awaiting_user | submitted | declined | needs_input
     filled: dict[str, str] = field(default_factory=dict)
     questions: list[dict] = field(default_factory=list)
-    screenshot: str | None = None
     message: str = ""
-    error: dict | None = None   # structured error for the agent (code/message/hint/retryable)
-    extra: dict = field(default_factory=dict)   # e.g. url / page_excerpt / confirmed after submit, value adjustments
-    documents: dict[str, str] = field(default_factory=dict)   # files uploaded to the form: {'cv': path, 'cover_letter': path}
 
 
 class ApplyBackend(Protocol):

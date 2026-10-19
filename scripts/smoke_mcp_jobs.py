@@ -15,6 +15,9 @@ from mcp import ClientSession, StdioServerParameters, stdio_client
 ROOT = Path(__file__).resolve().parent.parent
 LETTER = ("Hello! I am a manual QA engineer with 1.5 years of commercial experience testing iOS and Android apps and web "
           "applications. I wrote about 300 test cases in TestRail and test the REST API with Postman.")
+CV = (ROOT / "data" / "candidates" / "iryna" / "cv.md").read_text(encoding="utf-8")
+TAILORED = CV.replace("## Skills", "## Skills for mobile QA")
+INVENTED = TAILORED.replace("1.5 years of commercial experience", "3 years of commercial experience").replace("Scrum.", "Scrum, Appium.")
 
 
 def show(title: str, res) -> dict:
@@ -34,7 +37,9 @@ async def main():
         print("tools:", [t.name for t in (await s.list_tools()).tools])
         show("search_jobs('manual qa', remote)", await s.call_tool("search_jobs", {"keywords": "manual qa", "remote": True}))
         show("get_job(djinni.co link)", await s.call_tool("get_job", {"job_id": "https://djinni.co/jobs/851711-junior-manual-qa-engineer/"}))
-        show("apply(UAPP.AI)", await s.call_tool("apply", {"job_id": "djinni:851711-junior-manual-qa-engineer", "cover_letter": LETTER}))
+        uapp = {"job_id": "djinni:851711-junior-manual-qa-engineer", "cover_letter": LETTER}
+        show("apply(UAPP.AI, CV with invented facts)", await s.call_tool("apply", uapp | {"cv_markdown": INVENTED}))
+        show("apply(UAPP.AI, honestly tailored CV)", await s.call_tool("apply", uapp | {"cv_markdown": TAILORED}))
         show("apply(UAPP.AI) again", await s.call_tool("apply", {"job_id": "djinni:851711-junior-manual-qa-engineer", "cover_letter": LETTER}))
         show("apply(closed Inpolium)", await s.call_tool("apply", {"job_id": "djinni:853773-junior-manual-qa-engineer-mobile-web", "cover_letter": LETTER}))
         show("apply(DOU link)", await s.call_tool("apply", {"job_id": "https://jobs.dou.ua/companies/a/vacancies/1/", "cover_letter": LETTER}))

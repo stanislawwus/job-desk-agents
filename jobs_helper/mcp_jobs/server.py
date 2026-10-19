@@ -101,14 +101,18 @@ def get_job(
 def apply(
     job_id: Annotated[str, Field(description="Djinni job_id or djinni.co/jobs/... link")],
     cover_letter: Annotated[str, Field(description="Message to the recruiter, 200-1800 chars, ONLY facts from the candidate's CV")],
+    cv_markdown: Annotated[str | None, Field(description="The candidate's CV tailored to this vacancy, markdown, 400-6000 chars: "
+                                                         "the original CV reordered, shortened and rephrased, nothing added. "
+                                                         "Omit to attach the original CV")] = None,
 ) -> dict[str, Any]:
     """APPLY to a Djinni vacancy (state-changing). Fills the Djinni form with the candidate profile (name, email,
-    LinkedIn), the candidate's own CV and this message, acts on the candidate's submit policy and adds a row to the
-    applications tracker (workspace/applications.csv). Returns status submitted | awaiting_user | prepared | declined, or
-    a structured error: forbidden, unsupported_source, invalid_job_id, job_not_found, job_closed (with
-    similar_open_jobs), already_applied, cover_letter_too_short / _too_long, candidate_profile_incomplete."""
-    args = {"job_id": job_id, "cover_letter": cover_letter}
-    return _safe("apply", args, lambda svc: svc.apply(job_id, cover_letter))
+    LinkedIn), the tailored CV (or the candidate's own CV) and this message, acts on the candidate's submit policy and
+    adds a row to the applications tracker (workspace/applications.csv). Returns status submitted | awaiting_user |
+    prepared | declined, or a structured error: forbidden, unsupported_source, invalid_job_id, job_not_found, job_closed
+    (with similar_open_jobs), already_applied, cover_letter_too_short / _too_long, cv_invalid, unverified_facts (the CV
+    has numbers or tools that the original CV does not), candidate_profile_incomplete."""
+    args = {"job_id": job_id, "cover_letter": cover_letter, "cv_markdown": cv_markdown}
+    return _safe("apply", args, lambda svc: svc.apply(job_id, cover_letter, cv_markdown))
 
 
 def main() -> None:

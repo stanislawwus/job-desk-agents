@@ -16,17 +16,6 @@ F = Path(__file__).parent / "fixtures"
 # ---------------------------------------------------------------- heuristics
 
 @pytest.mark.parametrize("text,expected", [
-    ("$2200–2800", (2200, 2800)),
-    ("$4000", (4000, 4000)),
-    ("від $3000", (3000, None)),
-    ("до $4500", (None, 4500)),
-    ("no salary", (None, None)),
-])
-def test_parse_salary(text, expected):
-    assert extract.parse_salary(text) == expected
-
-
-@pytest.mark.parametrize("text,expected", [
     ("5+ years of professional Python\n2+ years with Spark\nAt least 1 year of AWS", 5.0),
     ("Досвід роботи від 3 років з Django", 3.0),
     ("We have been 15 years on the market. 2+ years of experience required", 2.0),
@@ -46,10 +35,9 @@ def test_guess_seniority(title, expected):
     assert extract.guess_seniority(title) == expected
 
 
-def test_guess_english_and_dates():
+def test_guess_english():
     assert extract.guess_english("Requirements: English — Upper-Intermediate") == "B2"
     assert extract.guess_english("Англійська B1 – Середній") == "B1"
-    assert extract.parse_ua_date("14 жовтня 2026") == "2026-10-14"
 
 
 def test_relevance_ignores_generic_words():
