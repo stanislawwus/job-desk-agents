@@ -23,7 +23,6 @@
 
 ```bash
 uv sync
-uv run pytest -q
 uv run python -m jobs_helper.agents.run "Apply to the 2 best remote manual QA vacancies on Djinni for me."
 ```
 
@@ -37,4 +36,4 @@ uv run python -m evaluation.run_eval
 
 5 запитів, кожен по 3 рази для двох агентів і для одного. Результат: **15/15 і 15/15**. Другий агент дорожчий приблизно в 2,3 раза, але він прибирав з CV факти, яких немає в оригіналі, а один агент один раз це пропустив. Детальніше в [RESULTS.md](RESULTS.md).
 
-Архітектура — [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), сценарій демо — [docs/DEMO.md](docs/DEMO.md).
+Приклади трейсів (два агенти й один агент на тому самому запиті) лежать у [docs/sample_traces](docs/sample_traces).

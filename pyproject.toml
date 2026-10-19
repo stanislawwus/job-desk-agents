@@ -28,12 +28,7 @@ build-backend = "hatchling.build"
 packages = ["jobs_helper"]
 
 [dependency-groups]
-dev = ["pytest>=9.1.1"]
 agents = ["claude-agent-sdk>=0.2.168"]
 
 [tool.uv]
-default-groups = ["dev", "agents"]
-
-[tool.pytest.ini_options]
-pythonpath = ["."]
-testpaths = ["tests"]
+default-groups = ["agents"]

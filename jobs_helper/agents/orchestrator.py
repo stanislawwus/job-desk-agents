@@ -125,8 +125,7 @@ async def run_request(request: str, candidate_dir: Path | None = None, mode: str
 
 
 def _mcp_failure(r: AgentResult) -> dict:
-    return {"final_answer": "Сервер вакансій (MCP `jobs`) не запустився; нічого не виконано. Перевір шляхи у змінних JOBS_* "
-                            "і запусти `uv run python scripts/smoke_mcp_jobs.py`.",
+    return {"final_answer": "Сервер вакансій (MCP `jobs`) не запустився; нічого не виконано. Перевір шляхи у змінних JOBS_*.",
             "questions_for_candidate": [], "recommended_job_ids": [], "error": "mcp_failed", "rounds": [{"failed": _summary(r)}]}
 
 
